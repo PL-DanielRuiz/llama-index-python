@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import logging
 from pydantic import BaseModel, Field, validator
 from pydantic.alias_generators import to_camel
@@ -125,7 +126,15 @@ class SourceNodes(BaseModel):
         url = metadata.get("URL")
 
         if not url:
+
+            ### danielruneda ###
+            # En caso de que no haya file_name, se obtiene el nombre del archivo a partir del file_path
             file_name = metadata.get("file_name")
+            file_path = metadata.get("file_path")
+            if not file_name and file_path:
+                file_name = Path(file_path).name
+            ####################
+
             url_prefix = os.getenv("FILESERVER_URL_PREFIX")
             if not url_prefix:
                 logger.warning(

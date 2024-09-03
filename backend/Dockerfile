@@ -24,3 +24,17 @@ FROM build as release
 COPY . .
 
 CMD ["python", "main.py"]
+
+
+# # ====================================
+# # Etapa de desarrollo
+# FROM build as dev
+
+# # Instalar dependencias de desarrollo
+# RUN poetry install --no-root --no-cache --only main,dev
+
+# # Copiar el código fuente
+# COPY . .
+
+# # Configurar comando para ejecutar en modo desarrollo
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app"]

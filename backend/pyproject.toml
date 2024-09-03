@@ -35,6 +35,10 @@ version = "0.2.6"
 [tool.poetry.dependencies.traceloop-sdk]
 version = "^0.15.11"
 
+
+[tool.poetry.group.dev.dependencies]
+debugpy = "^1.8.5"
+
 [build-system]
 requires = [ "poetry-core" ]
 build-backend = "poetry.core.masonry.api"

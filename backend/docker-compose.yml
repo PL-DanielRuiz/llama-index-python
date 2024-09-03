@@ -1,0 +1,18 @@
+# El archivo docker-compose.yml se encargará de levantar el contenedor en modo 
+#  desarrollo, con soporte para debugging y hot-reload
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      target: dev # Asegúrate de que 'dev' coincide con la etapa del Dockerfile
+    volumes:
+      - .:/app
+      - .env:/app/.env  # Verifica que esta línea esté correcta
+    ports:
+      - "8000:8000"  # Para la aplicación
+      - "5678:5678"  # Para depuración
+    environment:
+      - ENV=development
+

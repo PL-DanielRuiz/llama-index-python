@@ -1,0 +1,19 @@
+// Esto te permite levantar y bajar el contenedor directamente desde la paleta de comandos de VSCode.
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Docker Compose Up",
+        "type": "shell",
+        "command": "docker-compose up",
+        "problemMatcher": []
+      },
+      {
+        "label": "Docker Compose Down",
+        "type": "shell",
+        "command": "docker-compose down",
+        "problemMatcher": []
+      }
+    ]
+  }
+  

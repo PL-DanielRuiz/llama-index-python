@@ -1,0 +1,22 @@
+### Request to the chat endpoint
+POST http://localhost:8000/
+Content-Type: application/json
+
+{
+  "last_message_content": "Hola, ¿cómo estás?",
+  "messages": [{"role": "user", "content": "Hola"}]
+}
+
+### Request to the chat_request endpoint
+### Request to /api/chat/
+POST http://localhost:8000/api/chat/
+Content-Type: application/json
+{
+  "messages": [
+    {
+      "content": "What standards for letters exist?",
+      "role": "user"
+    }
+  ]
+}
+

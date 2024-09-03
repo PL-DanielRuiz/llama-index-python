@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 @minLength(1)
 @maxLength(64)
@@ -29,6 +29,9 @@ param openAiApiVersion string // Set in main.parameters.json
 
 var finalOpenAiUrl = empty(openAiUrl) ? 'https://${openAi.outputs.name}.openai.azure.com' : openAiUrl
 
+
+var systemPrompt = 'You are a helpful assistant who specializes in providing precise and accurate answers based on the information contained in a set of provided manuals. Your task is to assist users by answering their questions with the highest degree of accuracy, drawing directly from the content of these manuals. When responding to a question: [1] Accuracy: Provide answers that are directly supported by the manuals, without interpretation or added information. If the answer is not explicitly stated in the manuals, explain that the information is not available. [2] Conciseness: Give brief and to-the-point responses, only including details that are relevant and necessary to answer the question. [3] Source Identification: Whenever possible, reference the specific section or page of the manual from which the information is derived. [4] Clarifications: If the question is unclear or ambiguous, ask the user for clarification before providing an answer. [5] Response Format: Structure your responses in a clear, logical manner that is easy for the user to understand.'
+
 var llamaIndexConfig = {
   chat: {
     model: 'gpt-35-turbo'
@@ -37,37 +40,26 @@ var llamaIndexConfig = {
     capacity: '10'
   }
   embedding: {
-    model: 'text-embedding-3-large'
-    deployment: 'text-embedding-3-large'
+    model: 'text-embedding-ada-002' //'text-embedding-3-large'
+    deployment: 'text-embedding-ada-002' //'text-embedding-3-large'
     dim: '1024'
     capacity: '10'
   }
   model_provider: 'azure-openai'
   openai_api_key: ''
-  llm_temperature: '0.7'
-  llm_max_tokens: '100'
-  top_k: '3'
+  llm_temperature: '0.0'
+  llm_max_tokens: '500'
+  top_k: '5'
   fileserver_url_prefix: 'http://localhost/api/files'
-  system_prompt: 'You are a helpful assistant who helps users with their questions.'
+  system_prompt: systemPrompt
 }
 
-// Tags that should be applied to all resources.
-// 
-// Note that 'azd-service-name' tags should be applied separately to service host resources.
-// Example usage:
-//   tags: union(tags, { 'azd-service-name': <service name in azure.yaml> })
 var tags = {
   'azd-env-name': environmentName
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
-
-resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: 'rg-${environmentName}'
-  location: location
-  tags: tags
-}
+var resourceToken = toLower(uniqueString(resourceGroup().id, environmentName, location))
 
 module monitoring './shared/monitoring.bicep' = {
   name: 'monitoring'
@@ -77,7 +69,7 @@ module monitoring './shared/monitoring.bicep' = {
     logAnalyticsName: '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
     applicationInsightsName: '${abbrs.insightsComponents}${resourceToken}'
   }
-  scope: rg
+  scope: resourceGroup()
 }
 
 module dashboard './shared/dashboard-web.bicep' = {
@@ -88,7 +80,7 @@ module dashboard './shared/dashboard-web.bicep' = {
     location: location
     tags: tags
   }
-  scope: rg
+  scope: resourceGroup()
 }
 
 module registry './shared/registry.bicep' = {
@@ -98,7 +90,7 @@ module registry './shared/registry.bicep' = {
     tags: tags
     name: '${abbrs.containerRegistryRegistries}${resourceToken}'
   }
-  scope: rg
+  scope: resourceGroup()
 }
 
 module keyVault './shared/keyvault.bicep' = {
@@ -109,7 +101,7 @@ module keyVault './shared/keyvault.bicep' = {
     name: '${abbrs.keyVaultVaults}${resourceToken}'
     principalId: principalId
   }
-  scope: rg
+  scope: resourceGroup()
 }
 
 module appsEnv './shared/apps-env.bicep' = {
@@ -121,12 +113,12 @@ module appsEnv './shared/apps-env.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
   }
-  scope: rg
+  scope: resourceGroup()
 }
 
 module openAi './shared/cognitiveservices.bicep' = if (empty(openAiUrl)) {
   name: 'openai'
-  scope: rg
+  scope: resourceGroup()
   params: {
     name: '${abbrs.cognitiveServicesAccounts}${resourceToken}'
     location: openAiLocation
@@ -160,22 +152,18 @@ module openAi './shared/cognitiveservices.bicep' = if (empty(openAiUrl)) {
   }
 }
 
-// Roles
-
-// User roles
 module openAiRoleUser './shared/role.bicep' = if (createRoleForUser && createAzureOpenAi) {
-  scope: rg
+  scope: resourceGroup()
   name: 'openai-role-user'
   params: {
     principalId: principalId
-    // Cognitive Services OpenAI User
     roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
     principalType: 'User'
   }
 }
 
 module openAiRoleBackend './shared/role.bicep' = if (createAzureOpenAi && !createRoleForUser) {
-  scope: rg
+  scope: resourceGroup()
   name: 'openai-role-backend'
   params: {
     principalId: principalId
@@ -256,7 +244,7 @@ module llamaIndexPython './app/llama-index-python.bicep' = {
       ]
     })
   }
-  scope: rg
+  scope: resourceGroup()
 }
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
@@ -267,14 +255,4 @@ output AZURE_OPENAI_ENDPOINT string = finalOpenAiUrl
 output AZURE_DEPLOYMENT_NAME string = llamaIndexConfig.chat.deployment
 output OPENAI_API_VERSION string = openAiApiVersion
 
-//  LlamaIndex configuration
 output MODEL_PROVIDER string = llamaIndexConfig.model_provider
-output MODEL string = llamaIndexConfig.chat.model
-output EMBEDDING_MODEL string = llamaIndexConfig.embedding.model
-output EMBEDDING_DIM string = llamaIndexConfig.embedding.dim
-output OPENAI_API_KEY string = llamaIndexConfig.openai_api_key
-output LLM_TEMPERATURE string = llamaIndexConfig.llm_temperature
-output LLM_MAX_TOKENS string = llamaIndexConfig.llm_max_tokens
-output TOP_K string = llamaIndexConfig.top_k
-output FILESERVER_URL_PREFIX string = llamaIndexConfig.fileserver_url_prefix
-output SYSTEM_PROMPT string = llamaIndexConfig.system_prompt

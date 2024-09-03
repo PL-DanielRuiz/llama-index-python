@@ -48,6 +48,18 @@ def get_file_documents(config: FileLoaderConfig):
 
             parser = llama_parse_parser()
             reader.file_extractor = {".pdf": parser}
+
+            data_path = os.path.join(config.data_dir, "AT00011245_02.01.pdf")
+            # vanilaParsing = LlamaParse(result_type="markdown").load_data(data_path)
+
+            parsingInstruction = """
+It is an operator's manual containing many specifications set out in tables. 
+Usually the text is divided into 2 columns per page. 
+There are many charts with indications that we will ignore.
+The numbering of the sections defines a hierarchy that is important to keep in mind to avoid confusion between sections.
+"""
+            withInstructionParsing = LlamaParse(result_type="markdown", parsing_instruction=parsingInstruction).load_data(data_path)
+
         return reader.load_data()
     except Exception as e:
         import sys, traceback
