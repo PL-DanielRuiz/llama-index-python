@@ -4,7 +4,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -28,22 +27,18 @@ export default function PdfDialog({
   return (
     <Drawer direction="left">
       <DrawerTrigger>{trigger}</DrawerTrigger>
-      <DrawerContent className="w-screen max-w-screen-lg h-screen flex flex-row">
-        {/* Columna izquierda */}
-        <div className="w-1/2 p-4 overflow-y-auto bg-gray-50">
-          <DrawerHeader className="flex justify-between">
+      <DrawerContent className="w-screen h-screen flex flex-row">
+        {/* Panel izquierdo (Texto y Metadatos) */}
+        <div className="w-1/3 p-4 bg-gray-50 overflow-y-auto">
+          <DrawerHeader className="flex justify-between items-center">
             <div className="space-y-2">
               <DrawerTitle>PDF Details</DrawerTitle>
-              <DrawerDescription>
+              <div>
                 File URL:{" "}
-                <a
-                  className="hover:text-blue-900"
-                  href={url}
-                  target="_blank"
-                >
+                <a className="hover:text-blue-900" href={url} target="_blank">
                   {url}
                 </a>
-              </DrawerDescription>
+              </div>
             </div>
             <DrawerClose asChild>
               <Button variant="outline">Close</Button>
@@ -60,14 +55,15 @@ export default function PdfDialog({
             </pre>
           </div>
         </div>
-        {/* Columna derecha */}
-        <div className="w-1/2 p-4 overflow-auto bg-white">
+        {/* Panel derecho (PDF Viewer) */}
+        <div className="w-2/3 p-4 bg-white">
           <PdfFocusProvider>
             <PDFViewer
               file={{
                 id: documentId,
                 url: url,
               }}
+              className="w-full h-full"
             />
           </PdfFocusProvider>
         </div>
