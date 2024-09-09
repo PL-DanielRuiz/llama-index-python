@@ -10,6 +10,7 @@ import {
 import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 import { SourceData } from "../index";
 import PdfDialog from "../widgets/PdfDialog";
+import TxtDialog from "../widgets/TxtDialog"; // Importar el nuevo componente TxtDialog
 
 const SCORE_THRESHOLD = 0.3;
 
@@ -33,8 +34,8 @@ function SourceNumberButton({
 type NodeInfo = {
   id: string;
   url?: string;
-  text?: string; // Agregar campo text
-  metadata?: { [key: string]: any }; // Agregar metadatos
+  text?: string;
+  metadata?: { [key: string]: any };
 };
 
 export function ChatSources({ data }: { data: SourceData }) {
@@ -51,8 +52,8 @@ export function ChatSources({ data }: { data: SourceData }) {
         const nodeInfo = {
           id: node.id,
           url: node.url ?? (fileName ? `/api/files/data/${fileName}` : null),
-          text: node.text, // Agregar texto
-          metadata: node.metadata, // Agregar metadatos
+          text: node.text,
+          metadata: node.metadata,
         };
         const key = nodeInfo.url ?? nodeInfo.id;
         if (!nodesByPath[key]) {
@@ -76,9 +77,29 @@ export function ChatSources({ data }: { data: SourceData }) {
                 key={nodeInfo.id}
                 documentId={nodeInfo.id}
                 url={nodeInfo.url!}
-                text={nodeInfo.text || ''} // Pasar el texto
-                metadata={nodeInfo.metadata || {}} // Pasar los metadatos
-                trigger={<SourceNumberButton index={index} onClick={() => setSelectedNode(nodeInfo)} />}
+                text={nodeInfo.text || ""}
+                metadata={nodeInfo.metadata || {}}
+                trigger={
+                  <SourceNumberButton
+                    index={index}
+                    onClick={() => setSelectedNode(nodeInfo)}
+                  />
+                }
+              />
+            );
+          } else if (nodeInfo.url?.endsWith(".txt") || nodeInfo.url?.endsWith(".md")) {
+            return (
+              <TxtDialog
+                key={nodeInfo.id}
+                url={nodeInfo.url!}
+                text={nodeInfo.text || ""}
+                metadata={nodeInfo.metadata || {}}
+                trigger={
+                  <SourceNumberButton
+                    index={index}
+                    onClick={() => setSelectedNode(nodeInfo)}
+                  />
+                }
               />
             );
           }
@@ -86,7 +107,10 @@ export function ChatSources({ data }: { data: SourceData }) {
             <div key={nodeInfo.id}>
               <HoverCard>
                 <HoverCardTrigger>
-                  <SourceNumberButton index={index} onClick={() => setSelectedNode(nodeInfo)} />
+                  <SourceNumberButton
+                    index={index}
+                    onClick={() => setSelectedNode(nodeInfo)}
+                  />
                 </HoverCardTrigger>
                 <HoverCardContent className="w-[320px]">
                   <NodeInfo nodeInfo={nodeInfo} />
@@ -97,17 +121,23 @@ export function ChatSources({ data }: { data: SourceData }) {
         })}
       </div>
 
-      {selectedNode && !selectedNode.url?.endsWith(".pdf") && (
+      {selectedNode && !selectedNode.url?.endsWith(".pdf") && !selectedNode.url?.endsWith(".txt") && !selectedNode.url?.endsWith(".md") && (
         <Dialog open={!!selectedNode} onClose={() => setSelectedNode(null)}>
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <div className="bg-white p-6 rounded shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
-              <Dialog.Title className="text-lg font-semibold">Node Details</Dialog.Title>
+              <Dialog.Title className="text-lg font-semibold">
+                Node Details
+              </Dialog.Title>
               <div className="mt-2">
                 <h2 className="text-md font-semibold">Metadata</h2>
-                <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mb-4">{JSON.stringify(selectedNode.metadata, null, 2)}</pre>
+                <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mb-4">
+                  {JSON.stringify(selectedNode.metadata, null, 2)}
+                </pre>
                 <h2 className="text-md font-semibold">Text</h2>
-                <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">{selectedNode.text}</pre>
+                <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
+                  {selectedNode.text}
+                </pre>
               </div>
               <Button onClick={() => setSelectedNode(null)} className="mt-4">
                 Close
@@ -145,10 +175,5 @@ function NodeInfo({ nodeInfo }: { nodeInfo: NodeInfo }) {
     );
   }
 
-  return (
-    <p>
-      Sorry, unknown node type. Please add a new renderer in the NodeInfo
-      component.
-    </p>
-  );
+  return <p>Sorry, unknown node type. Please add a new renderer in the NodeInfo component.</p>;
 }
