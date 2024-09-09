@@ -10,41 +10,46 @@ from app.api.routers.chat import chat_router
 from app.settings import init_settings
 from app.observability import init_observability
 
+
+# Configurar el logger
+logger = logging.getLogger("uvicorn")
+
+
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
 
 # Configurar la conexión del debugger (solo en desarrollo)
-if os.getenv("ENVIRONMENT", "dev") == "dev":
-    import debugpy
-    debugpy.listen(("0.0.0.0", 5678))
-    print("Esperando a que el debugger se conecte...")
-    debugpy.wait_for_client()  # Pausa la ejecución hasta que el cliente del debugger se conecte
-    print("Debugger conectado")
+# if os.getenv("ENV", "dev") == "dev":
+#     import debugpy
+#     # Usa el puerto del entorno o un valor por defecto
+#     debugpy_port = int(os.getenv("DEBUGPY_PORT", 5678))
+#     debugpy.listen(("0.0.0.0", debugpy_port))
+#     print(f"Esperando a que el debugger se conecte en el puerto {debugpy_port}...")
+#     debugpy.wait_for_client()  # Pausa la ejecución hasta que el cliente del debugger se conecte
+#     print("Debugger conectado")
+
 
 # Crear la instancia de la aplicación FastAPI
 app = FastAPI()
+
 
 # Inicializar configuración y observabilidad
 init_settings()
 init_observability()
 
+
 # Configurar CORS en entorno de desarrollo
-environment = os.getenv("ENVIRONMENT", "dev")  # Por defecto es 'dev'
-code_space = os.getenv("CODESPACE_NAME")  # Obtener el nombre del Codespace si está definido
-github_api = os.getenv("NEXT_PUBLIC_CHAT_API")  # Obtener el formato de la API de Codespaces
+environment = os.getenv("ENV", "prod")  # Por defecto es 'dev'
+logger.info(f"Entorno: {environment}")
 
+
+# MODO DE DESARROLLO
 if environment == "dev":
-    logger = logging.getLogger("uvicorn")
+    logger.setLevel(logging.DEBUG)
 
-    if code_space and github_api:
-        logger.warning("Modo desarrollo y Codespaces - permitiendo CORS para orígenes de Codespaces")
-        origin_8000 = github_api.replace("/api/chat", "")
-        origin_8000 = origin_8000.replace("${CODESPACE_NAME}", f"{code_space}")
-        origin_3000 = origin_8000.replace("8000", "3000")
-        origins = [origin_8000, origin_3000]
-    else:
-        logger.warning("Modo desarrollo - permitiendo CORS para todos los orígenes")
-        origins = ["*"]
+    # Permitir CORS para todos los orígenes en modo desarrollo
+    logger.warning("[DEV] Running in development mode - allowing CORS for all origins")
+    origins = ["*"]
 
     app.add_middleware(
         CORSMiddleware,
@@ -54,24 +59,43 @@ if environment == "dev":
         allow_headers=["*"],
     )
 
-    # Redirigir a la página de documentación al acceder a la URL base
-    @app.get("/")
-    async def redirect_to_docs():
-        return RedirectResponse(url="/docs")
+else:
+    # TODO: Configurar CORS en producción. Esto es temporal...
+    logger.warning("[PROD] Running in development mode - allowing CORS for all origins")
+    origins = ["*"]
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+# Redirigir a la página de documentación al acceder a la URL base
+@app.get("/")
+async def redirect_to_docs():
+    return RedirectResponse(url="/docs")
 
 
 # Montar archivos estáticos si los directorios existen
 def mount_static_files(directory, path):
     if os.path.exists(directory):
-        app.mount(path, StaticFiles(directory=directory), name=f"{directory}-static")
+        logger.info(f"Mounting static files from {directory} at {path}")
+        app.mount(path, StaticFiles(directory=directory), name=f"{directory}")
+    else:
+        logger.warning(f"Directory {directory} does not exist. Static files not mounted.")
 
 
 # Montar archivos de datos y herramientas
-mount_static_files("data", "/api/files/data")
+mount_static_files("data", "/api/files/data/")
 mount_static_files("tool-output", "/api/files/tool-output")
+
 
 # Incluir el enrutador de chat con el prefijo /api/chat
 app.include_router(chat_router, prefix="/api/chat")
+
 
 # Ejecutar la aplicación usando Uvicorn
 if __name__ == "__main__":

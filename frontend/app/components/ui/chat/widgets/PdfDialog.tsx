@@ -13,38 +13,60 @@ import {
 export interface PdfDialogProps {
   documentId: string;
   url: string;
+  text: string; // Añadido para el texto
+  metadata: { [key: string]: any }; // Añadido para los metadatos
   trigger: React.ReactNode;
 }
 
-export default function PdfDialog(props: PdfDialogProps) {
+export default function PdfDialog({
+  documentId,
+  url,
+  text,
+  metadata,
+  trigger,
+}: PdfDialogProps) {
   return (
     <Drawer direction="left">
-      <DrawerTrigger>{props.trigger}</DrawerTrigger>
-      <DrawerContent className="w-3/5 mt-24 h-full max-h-[96%] ">
-        <DrawerHeader className="flex justify-between">
-          <div className="space-y-2">
-            <DrawerTitle>PDF Content</DrawerTitle>
-            <DrawerDescription>
-              File URL:{" "}
-              <a
-                className="hover:text-blue-900"
-                href={props.url}
-                target="_blank"
-              >
-                {props.url}
-              </a>
-            </DrawerDescription>
+      <DrawerTrigger>{trigger}</DrawerTrigger>
+      <DrawerContent className="w-screen max-w-screen-lg h-screen flex flex-row">
+        {/* Columna izquierda */}
+        <div className="w-1/2 p-4 overflow-y-auto bg-gray-50">
+          <DrawerHeader className="flex justify-between">
+            <div className="space-y-2">
+              <DrawerTitle>PDF Details</DrawerTitle>
+              <DrawerDescription>
+                File URL:{" "}
+                <a
+                  className="hover:text-blue-900"
+                  href={url}
+                  target="_blank"
+                >
+                  {url}
+                </a>
+              </DrawerDescription>
+            </div>
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerHeader>
+          <div className="mt-4">
+            <h2 className="text-md font-semibold">Metadata</h2>
+            <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mb-4">
+              {JSON.stringify(metadata, null, 2)}
+            </pre>
+            <h2 className="text-md font-semibold">Text</h2>
+            <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
+              {text}
+            </pre>
           </div>
-          <DrawerClose asChild>
-            <Button variant="outline">Close</Button>
-          </DrawerClose>
-        </DrawerHeader>
-        <div className="m-4">
+        </div>
+        {/* Columna derecha */}
+        <div className="w-1/2 p-4 overflow-auto bg-white">
           <PdfFocusProvider>
             <PDFViewer
               file={{
-                id: props.documentId,
-                url: props.url,
+                id: documentId,
+                url: url,
               }}
             />
           </PdfFocusProvider>

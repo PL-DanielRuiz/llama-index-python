@@ -126,7 +126,7 @@ module openAi './shared/cognitiveservices.bicep' = if (empty(openAiUrl)) {
     sku: {
       name: openAiSkuName
     }
-    disableLocalAuth: true
+    disableLocalAuth: false // Cambiar a "true" en producción. Para desarrollo lo tengo que dejar asi.
     deployments: [
       {
         name: llamaIndexConfig.chat.deployment

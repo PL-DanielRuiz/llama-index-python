@@ -39,12 +39,13 @@ def get_file_documents(config: FileLoaderConfig):
         reader = SimpleDirectoryReader(
             config.data_dir, recursive=True, filename_as_id=True, raise_on_error=True
         )
+        print(f"Loading documents from directory: {config.data_dir}")
         if config.use_llama_parse:
             # LlamaParse is async first,
             # so we need to use nest_asyncio to run it in sync mode
             import nest_asyncio
 
-            nest_asyncio.apply()
+            nest_asyncio.apply() 
 
             parser = llama_parse_parser()
             reader.file_extractor = {".pdf": parser}

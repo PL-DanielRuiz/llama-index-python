@@ -3,10 +3,15 @@ from typing import Dict
 from llama_index.core.settings import Settings
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
+import logging
+logger = logging.getLogger("uvicorn")
+
+
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path='app/.env')
-
+if not os.path.exists(".env"):
+    logger.warning("No .env file found!")
+load_dotenv(dotenv_path='.env') # ERROR!! The previous path (app/.env) was wrong
 
 def init_settings():
     model_provider = os.getenv("MODEL_PROVIDER")
@@ -74,26 +79,48 @@ def init_azure_openai():
     embedding_deployment = os.getenv("EMBEDDING_MODEL")
     azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     max_tokens = os.getenv("LLM_MAX_TOKENS")
+    
+    # Azure AD token provider
     credential = DefaultAzureCredential()
     token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
-    llm_config = {
-        "engine": llm_deployment,
-        "azure_endpoint": azure_openai_endpoint,
-        "azure_ad_token_provider": token_provider,
-        "use_azure_ad": True,
-        "temperature": float(os.getenv("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)),
-        "max_tokens": int(max_tokens) if max_tokens is not None else None,
-    }
+
+    # LLM configuration
+    if os.getenv("ENV", "dev") == "dev":
+        llm_config = {
+            "engine": llm_deployment,
+            "azure_endpoint": azure_openai_endpoint,
+            "api_key": os.getenv("AZURE_OPENAI_API_KEY"),
+            "temperature": float(os.getenv("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)),
+            "max_tokens": int(max_tokens) if max_tokens is not None else None,
+        }
+    else:
+        llm_config = {
+            "engine": llm_deployment,
+            "azure_endpoint": azure_openai_endpoint,
+            "azure_ad_token_provider": token_provider,
+            "use_azure_ad": True,
+            "temperature": float(os.getenv("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)),
+            "max_tokens": int(max_tokens) if max_tokens is not None else None,
+        }
     Settings.llm = AzureOpenAI(**llm_config)
 
+    # Embedding configuration
     dimensions = os.getenv("EMBEDDING_DIM")
-    embedding_config = {
-        "azure_endpoint": azure_openai_endpoint,
-        "azure_deployment": embedding_deployment,
-        "azure_ad_token_provider": token_provider,
-        "use_azure_ad": True,
-        "dimensions": int(dimensions) if dimensions is not None else None,
-    }
+    if os.getenv("ENV", "dev") == "dev":
+        embedding_config = {
+            "azure_endpoint": azure_openai_endpoint,
+            "azure_deployment": embedding_deployment,
+            "api_key": os.getenv("AZURE_OPENAI_API_KEY"),
+            "dimensions": int(dimensions) if dimensions is not None else None,
+        }
+    else:
+        embedding_config = {
+            "azure_endpoint": azure_openai_endpoint,
+            "azure_deployment": embedding_deployment,
+            "azure_ad_token_provider": token_provider,
+            "use_azure_ad": True,
+            "dimensions": int(dimensions) if dimensions is not None else None,
+        }
     Settings.embed_model = AzureOpenAIEmbedding(**embedding_config)
 
 
